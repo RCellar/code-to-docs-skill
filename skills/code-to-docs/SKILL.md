@@ -174,6 +174,28 @@ Session end:    /code-to-docs /path/to/codebase --update
 
 Each mode works independently — you don't need the full lifecycle to use any single mode. Generate (`quick`/`full`) works without a prior vault. Digest works without an upcoming update. Update works without a prior digest.
 
+### Automating with Hooks (`--hooks`)
+
+To automate the lifecycle for a project, install hooks into the project's `.claude/settings.json`:
+
+```
+/code-to-docs --hooks setup [vault-path]
+/code-to-docs --hooks teardown
+```
+
+**Setup** installs two project-level hooks:
+
+| Hook | Event | Trigger | What It Does |
+|------|-------|---------|-------------|
+| `digest-on-start.sh` | `SessionStart` | Every new session | Injects vault summary into Claude's context: module list, last run info, open issues, staleness warning |
+| `update-hint-on-commit.sh` | `PostToolUse` | `git commit` commands | Reminds Claude to suggest `--update` when the coding session is complete |
+
+**Teardown** removes only code-to-docs hooks — other hooks in the project settings are preserved.
+
+The hooks are lightweight shell scripts in the skill's `hooks/` directory. They read the vault state file and output text to stdout, which Claude Code injects into the conversation context. They never modify files.
+
+**Environment:** Set `CODE_TO_DOCS_VAULT` to override the vault path (defaults to the current directory). The setup script bakes the vault path into the hook commands.
+
 ---
 
 ## Red Flags

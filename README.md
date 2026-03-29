@@ -137,6 +137,22 @@ Session end:    /code-to-docs /path/to/codebase --update
 
 Each mode works independently — you don't need the full lifecycle to use any single one.
 
+### Automating with Hooks (optional)
+
+Install project-level hooks to automate the lifecycle:
+
+```
+/code-to-docs --hooks setup [vault-path]
+/code-to-docs --hooks teardown
+```
+
+| Hook | Fires On | Does |
+|------|----------|------|
+| `digest-on-start.sh` | Session start | Injects vault summary into context (modules, issues, staleness) |
+| `update-hint-on-commit.sh` | `git commit` | Reminds Claude to suggest `--update` when session ends |
+
+Hooks are project-local (`.claude/settings.json`), lightweight (read-only shell scripts), and removable with teardown. Set `CODE_TO_DOCS_VAULT` env var to override vault path.
+
 ### Arguments
 
 | Argument | Required | Default | Description |
@@ -223,6 +239,10 @@ The `_state/analysis.json` file tracks:
 | `analysis-guide.md` | Phase 1 reference — two-pass agent templates, model selection, synthesis, incremental update flow |
 | `obsidian-templates.md` | Phase 2 reference — frontmatter schema, audience levels, health templates, callouts, Mermaid |
 | `output-structure.md` | Phase 2 reference — vault layout, generation model assignments, Canvas rules, state file schema |
+| `hooks/setup.sh` | Installs project-level SessionStart and PostToolUse hooks |
+| `hooks/teardown.sh` | Removes code-to-docs hooks from project settings |
+| `hooks/digest-on-start.sh` | SessionStart hook — injects vault summary into conversation context |
+| `hooks/update-hint-on-commit.sh` | PostToolUse hook — reminds to update docs after git commits |
 
 ## Examples
 
@@ -243,7 +263,6 @@ Three test scenarios in `tests/`:
 - Configurable output format (portable markdown vs Obsidian-native)
 - Excalidraw diagram generation
 - Integration with `obsidian-cli` skill
-- Hook-based automation (auto-digest on session start, auto-update on commit)
 
 ## License
 
