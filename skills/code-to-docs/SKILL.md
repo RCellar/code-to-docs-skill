@@ -1,22 +1,28 @@
 ---
 name: code-to-docs
-description: Use when generating documentation from a codebase, creating architecture docs, building an Obsidian vault from code, documenting a new service, or when someone asks to document or explain a project's structure
+description: Use when generating documentation from a codebase, loading existing project docs for context at session start, updating docs after coding, creating architecture docs, building an Obsidian vault from code, or when someone asks to document or explain a project's structure
 ---
 
 ## Overview
 
 Analyze a codebase and produce an Obsidian-native documentation vault containing architecture diagrams, API references, and teaching-focused explanations written at three audience levels: beginner (language constructs explained), intermediate (patterns and integration), and advanced (failure modes, concurrency, edge cases). Output is ready to open directly in Obsidian with working wikilinks, Mermaid diagrams, and Dataview queries.
 
+Supports a full development lifecycle: **digest** existing docs at session start → code → **update** docs at session end.
+
 ## Invocation
 
 ```
 Skill(skill: "code-to-docs", args: "<path> [--mode quick|full] [--output <path>]")
 Skill(skill: "code-to-docs", args: "<path> --update [--output <path>]")
+Skill(skill: "code-to-docs", args: "--digest <vault-path> [--scope <module,...>] [--focus issues|architecture|all]")
 ```
 
-- `<path>` — codebase root (required)
-- `--mode` — `quick` (default) or `full`. Ignored when `--update` is set.
+- `<path>` — codebase root (required for generate and update)
+- `--mode` — `quick` (default) or `full`. Ignored when `--update` or `--digest` is set.
 - `--update` — incremental update: re-analyze only modules with changes since last run
+- `--digest` — load existing vault context into the conversation (read-only, no file writes)
+- `--scope` — (digest only) comma-separated module names to load in full
+- `--focus` — (digest only) `architecture` (default), `issues`, or `all`
 - `--output` — vault output path (default: `./docs-vault/` relative to codebase)
 
 **Quick mode:** Architecture overview, module inventory, API reference, codebase health assessment, index pages — all at three audience levels.
@@ -24,6 +30,8 @@ Skill(skill: "code-to-docs", args: "<path> --update [--output <path>]")
 **Full mode:** Everything in quick, plus design patterns, onboarding guides, cross-cutting concerns, tutorial walkthroughs.
 
 **Update mode:** Reads `_state/analysis.json` from the existing vault, runs `git diff` against the stored commit, re-analyzes only affected modules, and merges results with existing docs. Auto-selects quick or full based on the scope of changes.
+
+**Digest mode:** Loads structured context from an existing vault into the conversation. Reads — never writes — the vault. Provides architecture, module summaries, known issues, and session history before coding work begins.
 
 ---
 
@@ -76,6 +84,45 @@ Dispatch in parallel where possible:
 
 ---
 
+## Digest Mode (`--digest`)
+
+Load structured context from an existing vault into the current conversation. This mode is **read-only** — it never writes files.
+
+**Model: Haiku** — this is a read-and-present task, no analysis or generation.
+
+### Execution
+
+1. **Validate** — check `<vault-path>` exists and contains `_state/analysis.json`. If missing, report "No code-to-docs vault found. Run code-to-docs to generate one first."
+2. **Load baseline** — read `_state/analysis.json` (module list, dependency graph, issues, sessions) and `Architecture/System Overview.md`
+3. **Load focus content:**
+
+| `--focus` | Additional content loaded |
+|-----------|--------------------------|
+| `architecture` (default) | `Architecture/Dependency Map.md`, module Overview + Architecture sections only |
+| `issues` | `Health/Limitations.md`, `Health/Code Review.md`, module Code Review Notes |
+| `all` | Everything in architecture + issues + `Health/Health Summary.md` |
+
+4. **Load scoped modules** — for each module in `--scope`, read the full `Modules/{Name}.md`. Unscoped modules get overview-only.
+5. **Present context** — output a structured summary: project name, last run info, architecture narrative, module map, scoped module content, known issues, recent session history.
+
+### Token Budget
+
+| Scope | Target |
+|-------|--------|
+| Default (architecture only) | < 3,000 tokens |
+| With `--scope` (1-2 modules) | < 6,000 tokens |
+| With `--focus all` | < 10,000 tokens |
+
+If content exceeds targets, truncate module docs to Overview + Architecture sections and note the truncation.
+
+### Digest Red Flags
+
+- Writing any files — digest is read-only
+- Running generation or analysis — if the vault is stale, suggest `--update`, don't run it
+- Loading all module docs in full without `--scope` or `--focus all`
+
+---
+
 ## Update Mode (`--update`)
 
 When `--update` is set, the skill runs an incremental update instead of a full generation. Read `analysis-guide.md` section "Incremental Update Flow" for detailed instructions.
@@ -117,15 +164,15 @@ On each update, compare the new issues against the previous `issues` array:
 
 ## Development Lifecycle
 
-The intended workflow integrates digest, coding, and update:
+The three modes form an optional workflow:
 
 ```
-Session start:  /code-to-docs-digest ./docs-vault --scope {relevant modules}
+Session start:  /code-to-docs --digest ./docs-vault --scope {relevant modules}
 Coding work:    ... normal development ...
 Session end:    /code-to-docs /path/to/codebase --update
 ```
 
-This lifecycle is optional — each component works independently. The generate modes (`quick`/`full`) work without a prior vault. The digest skill works without an upcoming update. The update mode works without a prior digest.
+Each mode works independently — you don't need the full lifecycle to use any single mode. Generate (`quick`/`full`) works without a prior vault. Digest works without an upcoming update. Update works without a prior digest.
 
 ---
 
