@@ -164,7 +164,7 @@ Hooks are:
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `<path>` | Yes (generate/update) | — | Root of the codebase to document |
+| `<path>` | No | `.` (cwd) | Root of the codebase to document |
 | `--mode` | No | `quick` | `quick` or `full` (ignored with `--update`/`--digest`) |
 | `--update` | No | — | Incremental update from existing vault state |
 | `--digest` | No | — | Load existing vault context (read-only) |
