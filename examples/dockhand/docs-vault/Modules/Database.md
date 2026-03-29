@@ -137,3 +137,26 @@ sequenceDiagram
 - Sensitive fields are always encrypted on write if the encryption module is initialized. If encryption is unavailable, fields are stored in plain text.
 - The `id` column on all tables is auto-incrementing integer. No UUID primary keys.
 - Session tokens are stored as plain strings (not encrypted) since they are already cryptographically random.
+
+### Code Review Notes
+
+> [!warning] No database transactions across 250+ operations
+> **File:** `src/lib/server/db.ts:1-4681` | **Severity:** high
+>
+> Zero uses of database transactions. Multi-step operations like `deleteEnvironment` (4 sequential deletes) and `setDefaultRegistry` (clear then set) are not atomic. A crash mid-way leaves inconsistent state.
+>
+> See [[Limitations]] for full details.
+
+> [!warning] Encryption scattered across 40+ call sites
+> **File:** `src/lib/server/db.ts` (40+ locations) | **Severity:** high
+>
+> `encrypt()`/`decrypt()` is manually applied at each call site with no centralized mapping of sensitive fields. A forgotten `decrypt()` silently returns ciphertext to the caller.
+>
+> See [[Code Review]] for suggested wrapper pattern.
+
+> [!warning] Inconsistent null-vs-falsy guard for clearing encrypted fields
+> **File:** `src/lib/server/db.ts:1886-1888` | **Severity:** medium
+>
+> `updateGitCredential` uses `if (data.password)` (truthy check) rather than `if (data.password !== undefined)` used elsewhere. Passing `""` to clear a credential is silently ignored.
+>
+> See [[Code Review]] for full details.

@@ -130,3 +130,19 @@ sequenceDiagram
 - `server.js` is plain JavaScript (not TypeScript) because it runs directly via `node ./server.js` without a build step for itself. The SvelteKit build output (`./build/handler.js`) is imported at runtime.
 - The server listens on `PORT` (default 3000) and `HOST` (default 0.0.0.0).
 - WebSocket connections to unknown paths are immediately destroyed (socket.destroy()) as a security measure.
+
+### Code Review Notes
+
+> [!warning] No backpressure on terminal relay
+> **File:** `server.js:220-242` | **Severity:** medium
+>
+> Docker stream output is pushed directly to `ws.send()` with no check on WebSocket buffer state. Under heavy terminal output, the buffer grows unboundedly.
+>
+> See [[Code Review]] for suggested backpressure implementation.
+
+> [!warning] Chunked transfer encoding parsing is fragile
+> **File:** `server.js:236-238` | **Severity:** medium
+>
+> Regex-based chunk parsing on UTF-8 strings fails with split TCP segments, multi-byte characters at boundaries, and multi-chunk buffers.
+>
+> See [[Code Review]] for full details.

@@ -138,3 +138,26 @@ graph TD
 - Scanner availability depends on Grype and/or Trivy Docker images being pullable. No scanner is bundled with Dockhand.
 - License validation uses RSA-SHA256 with a hardcoded public key. The license key format is `base64(json({name, type, host, expiresAt, signature}))`.
 - The DNS dispatcher is set globally via `undici.setGlobalDispatcher()` at module import time. This affects all HTTP requests made through undici/fetch.
+
+### Code Review Notes
+
+> [!warning] Scanner lock race condition
+> **File:** `src/lib/server/scanner.ts:83-102` | **Severity:** high
+>
+> The promise-chaining serial lock has a race: concurrent callers both read the same `existing` promise and overwrite each other's entries, allowing scans to run concurrently.
+>
+> See [[Code Review]] for async-mutex replacement pattern.
+
+> [!warning] Host-path detection failure silently produces wrong mounts
+> **File:** `src/lib/server/host-path.ts:238-253` | **Severity:** high
+>
+> If Docker mount detection fails at startup, all compose volume path translations silently pass through container-internal paths, causing empty bind mounts.
+>
+> See [[Code Review]] for full details.
+
+> [!warning] Subprocess lineBuffer not reset on restart
+> **File:** `src/lib/server/subprocess-manager.ts:82-83` | **Severity:** medium
+>
+> When the Go worker crashes and restarts, leftover bytes from the previous process corrupt the first JSON line of the new process.
+>
+> See [[Code Review]] for fix.

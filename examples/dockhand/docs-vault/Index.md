@@ -66,6 +66,18 @@ GROUP BY language
 - [[Real-Time Communication]] — SSE, WebSocket, IPC event flows
 - [[Multi-Environment Model]] — Environment scoping across all layers
 
+## Codebase Health
+
+```dataview
+TABLE title, type, status
+FROM #code-docs AND #health
+SORT title ASC
+```
+
+- [[Health Summary]] — Severity charts and cross-module themes
+- [[Limitations]] — Architecture and design constraints
+- [[Code Review]] — Bugs, risks, and improvement opportunities
+
 ## Documentation Status
 
 ```dataview

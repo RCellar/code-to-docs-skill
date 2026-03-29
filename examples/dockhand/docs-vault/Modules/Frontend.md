@@ -168,3 +168,19 @@ sequenceDiagram
 - The startup sequence in hooks must complete before any API route can handle requests. Lazy database initialization handles the timing.
 - shadcn-svelte components in `src/lib/components/ui/` are generated code — they should be updated via the shadcn-svelte CLI, not edited directly.
 - 18 page routes correspond to sidebar navigation items. Adding a new page requires adding both the route and the sidebar entry.
+
+### Code Review Notes
+
+> [!warning] Inconsistent environment access checks across API endpoints
+> **File:** 145+ files in `src/routes/api/` | **Severity:** medium
+>
+> Only ~18% of API endpoints check `canAccessEnvironment()` for enterprise RBAC scoping. Two different authorization guard patterns are in use, increasing copy-paste error risk.
+>
+> See [[Code Review]] for shared utility pattern.
+
+> [!warning] parseInt NaN not validated for environment IDs
+> **File:** Widespread across `src/routes/api/` | **Severity:** medium
+>
+> `parseInt(envId)` returns `NaN` for non-numeric strings. `NaN` is truthy and gets passed to Docker operations and authorization checks, where `NaN !== NaN` comparisons fail unpredictably.
+>
+> See [[Code Review]] for `parseEnvId` utility pattern.

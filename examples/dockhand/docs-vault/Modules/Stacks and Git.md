@@ -146,3 +146,26 @@ sequenceDiagram
 - Git credentials (passwords, SSH keys) are encrypted in the database and decrypted only when needed for a git operation.
 - The `docker compose` binary must be available in PATH. Dockhand does not bundle it.
 - Webhook-triggered syncs bypass the scheduler but still acquire the per-stack lock.
+
+### Code Review Notes
+
+> [!warning] SSH keys written to predictable /tmp paths
+> **File:** `src/lib/server/git.ts:159-209` | **Severity:** medium
+>
+> SSH keys use predictable filenames (`/tmp/.ssh-key-${credential.id}`), are not zeroed before deletion, and have no process-exit cleanup handler.
+>
+> See [[Code Review]] for suggested improvements.
+
+> [!warning] SSH host key verification disabled
+> **File:** `src/lib/server/git.ts:190-193` | **Severity:** medium
+>
+> All git-over-SSH operations use `StrictHostKeyChecking=no`, making them vulnerable to MITM attacks.
+>
+> See [[Limitations]] for full details.
+
+> [!warning] Env var values written to .env.dockhand without quoting
+> **File:** `src/lib/server/stacks.ts:1030` | **Severity:** low-medium
+>
+> Values containing newlines, `#`, or other `.env` syntax characters will be misinterpreted by Docker Compose, enabling potential variable injection.
+>
+> See [[Code Review]] for full details.

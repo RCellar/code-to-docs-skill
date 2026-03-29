@@ -156,3 +156,19 @@ sequenceDiagram
 - Task functions re-fetch the schedule config from the database at execution time. If the schedule was disabled or deleted between cron fire and execution, the task exits early.
 - The `croner` library handles cron parsing and scheduling. No custom cron parser exists in the codebase.
 - System cleanup jobs (event cleanup, execution cleanup, volume helper cleanup) are registered from database-seeded records with default cron expressions.
+
+### Code Review Notes
+
+> [!warning] No concurrent execution guard for most tasks
+> **File:** `src/lib/server/scheduler/tasks/` | **Severity:** high
+>
+> Only `env-update-check` has a concurrency guard. Container-update, git-stack-sync, and image-prune have none. Concurrent container recreation is a destructive race.
+>
+> See [[Limitations]] for full details and suggested fix.
+
+> [!warning] Log append race condition
+> **File:** `src/lib/server/scheduler/tasks/container-update.ts:317-319` | **Severity:** medium
+>
+> The `log()` helper calls `appendScheduleExecutionLog` without `await`. Concurrent appends can overwrite each other, losing log lines. The `env-update-check.ts` correctly awaits each call.
+>
+> See [[Code Review]] for full details.

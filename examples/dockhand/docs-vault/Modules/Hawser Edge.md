@@ -152,3 +152,19 @@ sequenceDiagram
 - Hawser tokens are hashed with Argon2id (same as user passwords). Raw tokens are shown once at generation time and never stored.
 - Token prefixes (first 8 characters) are stored in plain text for O(1) lookup. The full token is verified via Argon2id only after prefix match.
 - WebSocket connections use `ws.terminate()` (immediate close) rather than `ws.close()` (graceful) for forced disconnections, to avoid waiting for the remote end.
+
+### Code Review Notes
+
+> [!warning] stopEdgeManager does not reject pending requests
+> **File:** `src/lib/server/hawser.ts:154-166` | **Severity:** medium
+>
+> `stopEdgeManager()` closes connections but never iterates `pendingRequests` to reject them. Callers awaiting `sendEdgeRequest()` promises hang indefinitely with orphaned timeout timers. Every other teardown path properly rejects pending requests.
+>
+> See [[Code Review]] for full details.
+
+> [!warning] Streaming response accumulation is unbounded
+> **File:** `src/lib/server/hawser.ts:583-608` | **Severity:** low-medium
+>
+> When `sendEdgeRequest` is called with `streaming = true`, all chunks are accumulated in a `Buffer[]` with no size limit. A misbehaving agent could consume server memory.
+>
+> See [[Code Review]] for full details.

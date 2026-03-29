@@ -146,3 +146,19 @@ Three goroutines per environment, all tied to a cancellable `context.Context`:
 - Communication is strictly via JSON lines on stdin/stdout. No network listeners, no file I/O, no signal-based IPC.
 - SIGTERM/SIGINT trigger graceful shutdown: all environments are removed (goroutines cancelled, transports closed), then the process exits.
 - The collector trusts all Docker connection details from the parent process. No validation of socket paths or TLS certificates beyond what Go's standard library provides.
+
+### Code Review Notes
+
+> [!warning] Data race on environment fields
+> **File:** `collector/main.go:362-368, 561-576` | **Severity:** medium
+>
+> `online` and `statusReported` are read/written by multiple goroutines without synchronization. This is a textbook Go data race — `go test -race` will flag it.
+>
+> See [[Code Review]] for fix using `atomic.Bool`.
+
+> [!warning] pollEvents 30-second lookback misses events
+> **File:** `collector/main.go:671-672` | **Severity:** medium
+>
+> The hardcoded 30-second lookback window doesn't match the default 60-second poll interval. Half of all events are silently dropped in poll mode with default configuration.
+>
+> See [[Code Review]] for full details.

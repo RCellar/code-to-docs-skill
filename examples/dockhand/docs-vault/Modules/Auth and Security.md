@@ -148,3 +148,26 @@ Three global in-memory stores (all HMR-guarded via `globalThis`):
 - Authentication failures always return generic messages ("Invalid username or password") regardless of whether the user exists, preventing user enumeration.
 - Rate limiting triggers after 5 failed attempts within 15 minutes, imposing a 15-minute lockout.
 - The encryption key is lazy-initialized. If a rotation is detected (env var differs from file), `migrateCredentials()` re-encrypts all sensitive fields in the database.
+
+### Code Review Notes
+
+> [!warning] OIDC JWT signature not verified against JWKS
+> **File:** `src/lib/server/auth.ts:1328-1340` | **Severity:** high
+>
+> The ID token is decoded by base64-decoding the payload without verifying the JWT signature against the provider's JWKS. A code comment acknowledges this: "basic validation - in production use a JWT library." Combined with conditional nonce validation, this is the highest-priority security finding.
+>
+> See [[Code Review]] for the suggested `jose` library implementation.
+
+> [!warning] Encryption key rotation not atomic
+> **File:** `src/lib/server/encryption.ts:323-465` | **Severity:** high
+>
+> `migrateCredentials()` switches the cached key before re-encrypting rows, with no database transaction wrapping the updates. A crash mid-loop leaves mixed encryption state with no recovery path.
+>
+> See [[Code Review]] for full details.
+
+> [!warning] Backup codes use Math.random() instead of CSPRNG
+> **File:** `src/lib/server/auth.ts:850-861` | **Severity:** medium
+>
+> MFA backup code generation uses `Math.random()` rather than `crypto.randomInt()` or `secureRandomBytes`. The rest of the codebase correctly uses CSPRNGs for security-sensitive randomness.
+>
+> See [[Code Review]] for fix.

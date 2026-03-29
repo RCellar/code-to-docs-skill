@@ -146,3 +146,26 @@ Both use `globalThis` interval guards for HMR-safe cleanup. Cache entries are la
 - All Docker resource IDs from URL parameters are validated by `validateDockerIdParam` (21-line module) for path traversal sequences before use.
 - The `dockerFetch` function validates that API paths don't contain `..` segments.
 - `extractContainerOptions` must faithfully reconstruct `CreateContainerOptions` from inspect output for the update flow to be lossless. Any new Docker API field added to container creation must also be added to extraction.
+
+### Code Review Notes
+
+> [!warning] UTF-8 corruption in `demuxDockerStream`
+> **File:** `src/lib/server/docker.ts:196-230` | **Severity:** medium
+>
+> Each Docker stream frame is decoded to UTF-8 individually. Multi-byte UTF-8 characters spanning frame boundaries are corrupted. The sister function `processStreamFrames` was already fixed to concatenate buffers first, but `demuxDockerStream` was not.
+>
+> See [[Code Review]] for full details and suggested fix.
+
+> [!warning] Race condition in volume helper container cache
+> **File:** `src/lib/server/docker.ts:4964-5034` | **Severity:** medium
+>
+> `getOrCreateVolumeHelperContainer` has a check-then-act race. Two concurrent requests can both observe a cache miss and create duplicate helper containers. The first becomes orphaned.
+>
+> See [[Code Review]] for full details.
+
+> [!warning] `unixSocketRequest` ignores AbortSignal
+> **File:** `src/lib/server/docker.ts:679-736` | **Severity:** medium
+>
+> The function accepts `RequestInit` but never wires up `signal` to the underlying `http.request`. Timeout-based abort signals have no effect for Unix socket requests, meaning hung Docker daemon responses are never cancelled.
+>
+> See [[Code Review]] for full details.
