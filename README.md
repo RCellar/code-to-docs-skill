@@ -1,6 +1,6 @@
 # code-to-docs
 
-A Claude Code skill that analyzes codebases and generates Obsidian-native documentation vaults with architecture diagrams, API references, and teaching-focused explanations at three audience levels.
+A Claude Code skill that analyzes codebases and generates Obsidian-native documentation vaults with architecture diagrams, API references, codebase health assessments, and teaching-focused explanations at three audience levels.
 
 ## What It Does
 
@@ -9,14 +9,16 @@ Point it at a codebase and it produces a complete Obsidian vault:
 - **Architecture docs** with Mermaid diagrams and a spatial Canvas map
 - **Module documentation** at three audience levels (beginner, intermediate, advanced)
 - **API reference** with function signatures, parameters, and return types
+- **Codebase health assessment** — limitations, bugs/risks, improvement opportunities with severity charts
+- **Educational code review** — before/after snippets showing what's wrong and how to fix it
 - **Index pages** with Dataview queries for navigation
-- **Incremental contract** — a state file for future change-detection support
+- **Incremental contract** — state file tracking modules, dependencies, and issues for future change detection
 
 ### Two Modes
 
 | Mode | Generates |
 |------|-----------|
-| **quick** (default) | Architecture overview, module docs, API reference, index |
+| **quick** (default) | Architecture overview, module docs, API reference, health assessment, index |
 | **full** | Everything in quick + design patterns, onboarding guides, cross-cutting concerns, tutorials |
 
 ### Three Audience Levels
@@ -25,7 +27,19 @@ Every module doc includes all three as sections:
 
 - **Beginner** — explains language constructs, annotated walkthroughs, no jargon
 - **Intermediate** — design rationale, patterns, module interactions, trade-offs
-- **Advanced** — concurrency, performance, failure modes, edge cases
+- **Advanced** — concurrency, performance, failure modes, edge cases, code review notes
+
+### Three Model Tiers
+
+The skill uses Haiku, Sonnet, and Opus strategically to minimize token cost without sacrificing quality:
+
+| Tier | Model | Use |
+|------|-------|-----|
+| **Extract** | Haiku | Code extraction, mechanical generation (Canvas, Index, state file), verification |
+| **Write** | Sonnet | Narrative writing, pedagogical content, health report assembly |
+| **Reason** | Opus | Deep issue analysis (complex modules), cross-module synthesis (5+ modules) |
+
+Opus is used conditionally — only for modules rated High complexity, exceeding 1000 LOC, or involving concurrency/security, and for synthesis on codebases with 5+ modules or complex dependency graphs.
 
 ## Installation
 
@@ -73,13 +87,17 @@ Skill(skill: "code-to-docs", args: "/path/to/codebase --mode quick")
 
 ```
 docs-vault/
-├── _state/analysis.json        # Incremental contract
+├── _state/analysis.json        # Incremental contract (modules, deps, issues)
 ├── Architecture/
 │   ├── System Overview.md      # Mermaid diagrams + narrative
 │   ├── Dependency Map.md       # Cross-module dependencies
 │   └── System Map.canvas       # Spatial map linking modules
 ├── Modules/
-│   └── {Module Name}.md        # Beginner + Intermediate + Advanced + API
+│   └── {Module Name}.md        # Beginner + Intermediate + Advanced + API + Review Notes
+├── Health/
+│   ├── Limitations.md          # Architecture and component constraints
+│   ├── Code Review.md          # Bugs, risks, improvements with before/after code
+│   └── Health Summary.md       # Severity charts (Mermaid pie/bar)
 ├── Patterns/                   # full mode only
 ├── Onboarding/                 # full mode only
 ├── Cross-Cutting/              # full mode only
@@ -88,40 +106,42 @@ docs-vault/
 
 ## How It Works
 
-1. **Phase 1: Analysis** — surveys the codebase, identifies independent modules, dispatches parallel agents (one per module) to extract architecture, APIs, patterns, and dependencies
-2. **Phase 2: Generation** — produces Obsidian-native markdown with wikilinks, frontmatter, callouts, Mermaid diagrams, and a Canvas file
-3. **Phase 3: Verification** — checks all wikilinks resolve, all files have complete frontmatter, reports summary
+### Phase 1: Analysis (two-pass)
 
-### Parallel Execution
+1. Surveys the codebase — entry points, config files, directory structure
+2. Identifies independent modules
+3. **Pass 1** — dispatches parallel **Haiku** agents to extract structure (architecture, API, patterns, dependencies, complexity, key files)
+4. **Pass 2** — dispatches **Sonnet/Opus** agents to identify limitations and improvements, receiving the Haiku output as input (no re-reading code)
+5. Synthesizes into dependency graph, architecture narrative, and aggregated issues
 
-For codebases with 3+ independent modules, analysis is automatically parallelized — one agent per module, all dispatched simultaneously. This follows the established Claude Code `dispatching-parallel-agents` pattern.
+### Phase 2: Generation (parallel)
+
+Dispatches independent agents in parallel with model tier matched to task:
+
+- **Sonnet** agents: module docs (one per module), System Overview, health reports, full-mode extras
+- **Haiku** agents: Canvas, Dependency Map, Index, state file, Health Summary charts
+
+### Phase 3: Verification
+
+- **Haiku** agent checks all wikilinks resolve and all files have complete frontmatter
+- Reports: file count, module count, mode, broken links
 
 ## Skill Files
 
 | File | Purpose |
 |------|---------|
-| `SKILL.md` | Entry point — orchestrates phases, defines red flags and discipline |
-| `analysis-guide.md` | Phase 1 reference — module identification, agent prompt template, synthesis |
-| `obsidian-templates.md` | Phase 2 reference — frontmatter schema, audience levels, callouts, Mermaid |
-| `output-structure.md` | Phase 2 reference — vault layout, Canvas rules, Index template, state file |
+| `SKILL.md` | Entry point — orchestrates phases, model tier rules, red flags, discipline |
+| `analysis-guide.md` | Phase 1 reference — two-pass agent templates, model selection tables, synthesis |
+| `obsidian-templates.md` | Phase 2 reference — frontmatter schema, audience levels, health templates, callouts, Mermaid |
+| `output-structure.md` | Phase 2 reference — vault layout, generation model assignments, Canvas rules, state file schema |
 
-## Development
+## Examples
 
-```
-code-to-docs-skill/
-├── .claude-plugin/
-│   └── plugin.json             # Plugin manifest
-├── skills/
-│   └── code-to-docs/           # The skill files
-├── research/                   # Background research docs
-├── tests/                      # Pressure test scenarios
-├── docs/superpowers/
-│   ├── specs/                  # Design spec
-│   └── plans/                  # Implementation plan
-└── examples/                   # Example output vaults
-```
+The `examples/` directory contains complete output vaults you can open directly in Obsidian:
 
-### Running Pressure Tests
+- **dockhand/** — full-mode vault from a SvelteKit + Go container management UI (10 modules, patterns, onboarding, cross-cutting concerns)
+
+## Pressure Tests
 
 Three test scenarios in `tests/`:
 
@@ -131,8 +151,7 @@ Three test scenarios in `tests/`:
 
 ## Future Enhancements
 
-- Incremental updates via `git diff` + state file
-- NanoClaw container compatibility
+- Incremental updates via `git diff` + state file (issues tracked across runs)
 - Configurable output format (portable markdown vs Obsidian-native)
 - Excalidraw diagram generation
 - Integration with `obsidian-cli` skill
