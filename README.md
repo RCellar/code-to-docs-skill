@@ -2,6 +2,81 @@
 
 A Claude Code skill that analyzes codebases and generates Obsidian-native documentation vaults with architecture diagrams, API references, codebase health assessments, and teaching-focused explanations at three audience levels. Supports a full development lifecycle: digest existing docs at session start, code, then update docs at session end.
 
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }}}%%
+flowchart TB
+    subgraph INPUT["  Codebase  "]
+        direction TB
+        SRC["Source Code"]
+        CFG["Config & Manifests"]
+    end
+
+    subgraph PHASE1["  Phase 1 — Analysis  "]
+        direction TB
+        SURVEY["Survey & Module ID"]
+        P1["Pass 1: Extract<br/><i>Haiku × N modules</i>"]
+        P2["Pass 2: Issues<br/><i>Sonnet / Opus × N</i>"]
+        SYN["Synthesize<br/><i>Orchestrator or Opus</i>"]
+        SURVEY --> P1
+        P1 --> P2
+        P2 --> SYN
+    end
+
+    subgraph PHASE2["  Phase 2 — Generation  "]
+        direction TB
+        ARCH["Architecture<br/><i>Sonnet + Haiku</i>"]
+        MODS["Module Docs<br/><i>Sonnet × N</i>"]
+        HEALTH["Health Reports<br/><i>Sonnet + Haiku</i>"]
+        EXTRAS["Patterns · Onboarding<br/>Cross-Cutting<br/><i>Sonnet (full mode)</i>"]
+    end
+
+    subgraph PHASE3["  Phase 3 — Verify  "]
+        VER["Wikilinks + Frontmatter<br/><i>Haiku</i>"]
+    end
+
+    subgraph OUTPUT["  Obsidian Vault  "]
+        direction TB
+        VAULT["docs-vault/"]
+    end
+
+    subgraph LIFECYCLE["  Development Lifecycle  "]
+        direction LR
+        DIGEST["--digest<br/><i>Load context</i>"]
+        CODE["Code"]
+        UPDATE["--update<br/><i>Sync changes</i>"]
+        DIGEST --> CODE --> UPDATE
+        UPDATE -. "git diff<br/>re-analyze" .-> PHASE1
+    end
+
+    INPUT --> PHASE1
+    SYN --> PHASE2
+    ARCH & MODS & HEALTH & EXTRAS --> PHASE3
+    VER --> OUTPUT
+    VAULT -. "read-only" .-> DIGEST
+
+    style INPUT fill:#1a1a2e,stroke:#4a9eff,color:#fff
+    style PHASE1 fill:#16213e,stroke:#4a9eff,color:#fff
+    style PHASE2 fill:#1a1a2e,stroke:#ff6b35,color:#fff
+    style PHASE3 fill:#16213e,stroke:#ffd93d,color:#fff
+    style OUTPUT fill:#1a1a2e,stroke:#7c3aed,color:#fff
+    style LIFECYCLE fill:#0f3460,stroke:#4a9eff,color:#fff,stroke-dasharray: 5 5
+    style SRC fill:#4a9eff,color:#fff
+    style CFG fill:#4a9eff,color:#fff
+    style SURVEY fill:#2d4a7a,color:#fff
+    style P1 fill:#2d4a7a,color:#fff
+    style P2 fill:#2d4a7a,color:#fff
+    style SYN fill:#2d4a7a,color:#fff
+    style ARCH fill:#6b3a1a,color:#fff
+    style MODS fill:#6b3a1a,color:#fff
+    style HEALTH fill:#6b3a1a,color:#fff
+    style EXTRAS fill:#6b3a1a,color:#fff
+    style VER fill:#5a5a1a,color:#fff
+    style VAULT fill:#4a1a6b,color:#fff
+    style DIGEST fill:#1a4a6b,color:#fff
+    style CODE fill:#2d2d2d,color:#fff
+    style UPDATE fill:#6b3a1a,color:#fff
+```
+
 ## What It Does
 
 Point it at a codebase and it produces a complete Obsidian vault:
@@ -47,6 +122,8 @@ The skill uses Haiku, Sonnet, and Opus strategically to minimize token cost with
 | **Reason** | Opus | Deep issue analysis (complex modules), cross-module synthesis (5+ modules) |
 
 Opus is used conditionally — only for modules rated High complexity, exceeding 1000 LOC, or involving concurrency/security, and for synthesis on codebases with 5+ modules or complex dependency graphs. Digest mode uses Haiku exclusively.
+
+Each phase has a **dispatch table** — an authoritative checklist listing every agent call with its required `model` parameter. The orchestrator reads the table before dispatching to ensure tier assignments are followed. This prevents the most common cost mistake: running extraction or mechanical tasks at Opus cost.
 
 ## Installation
 
@@ -102,32 +179,7 @@ Loads existing vault context into the conversation — architecture, module summ
 
 ### Development Lifecycle
 
-The three modes form an optional workflow:
-
-```mermaid
-flowchart LR
-    subgraph Session Start
-        D["/code-to-docs --digest"]
-    end
-
-    subgraph Development
-        C["Coding Work"]
-    end
-
-    subgraph Session End
-        U["/code-to-docs --update"]
-    end
-
-    V["docs-vault/"] -->|"read context\n(read-only)"| D
-    D -->|"architecture, modules,\nknown issues"| C
-    C -->|"git diff\nchanged files"| U
-    U -->|"re-analyze affected\nmodules only"| V
-
-    style D fill:#4a9eff,color:#fff
-    style C fill:#2d2d2d,color:#fff
-    style U fill:#ff6b35,color:#fff
-    style V fill:#7c3aed,color:#fff
-```
+The three modes form an optional workflow (shown in the dashed box in the diagram above):
 
 ```
 Session start:  /code-to-docs --digest ./docs-vault --scope {modules you'll touch}
@@ -224,9 +276,11 @@ If the `obsidian` CLI is available, uses it for note creation and property manag
 **Phase 3 — Verification:**
 - **Haiku** agent checks all wikilinks resolve and all files have complete frontmatter
 
+**Cost discipline:** Each phase has a dispatch table specifying the model tier for every agent call. The orchestrator checks the table before dispatching to prevent tier mismatches (e.g., running Haiku-tier extraction at Opus cost).
+
 ### Update (`--update`)
 
-1. Reads `_state/analysis.json` from existing vault
+1. Reads and **validates** `_state/analysis.json` from existing vault (required fields, types, issue schema)
 2. Runs `git diff <stored_commit>..HEAD` to identify changed files
 3. Maps changed files to affected modules
 4. Auto-selects quick or full based on change scope
@@ -247,13 +301,13 @@ If the `obsidian` CLI is available, uses it for note creation and property manag
 
 | File | Purpose |
 |------|---------|
-| `SKILL.md` | Entry point — all modes (generate/update/digest), model tier rules, lifecycle, red flags |
-| `analysis-guide.md` | Phase 1 reference — two-pass agent templates, model selection, synthesis, incremental update flow |
+| `SKILL.md` | Entry point — all modes (generate/update/digest), model tier rules, Phase 3 dispatch table, lifecycle, red flags, rationalization traps |
+| `analysis-guide.md` | Phase 1 reference — Phase 1 dispatch table, two-pass agent templates, model selection, synthesis, incremental update flow with state validation |
 | `obsidian-templates.md` | Phase 2 reference — frontmatter schema, audience levels, health templates, callouts, Mermaid |
-| `output-structure.md` | Phase 2 reference — vault layout, generation model assignments, Canvas rules, state file schema |
-| `hooks/setup.sh` | Installs project-level SessionStart and PostToolUse hooks |
-| `hooks/teardown.sh` | Removes code-to-docs hooks from project settings |
-| `hooks/digest-on-start.sh` | SessionStart hook — injects vault summary into conversation context |
+| `output-structure.md` | Phase 2 reference — Phase 2 dispatch table, vault layout, Canvas rules, state file schema with validation |
+| `hooks/setup.sh` | Installs project-level hooks via temp file JSON passing with `source` markers |
+| `hooks/teardown.sh` | Removes code-to-docs hooks by `source` field matching (preserves other hooks) |
+| `hooks/digest-on-start.sh` | SessionStart hook — single python3 call extracts vault summary into context |
 | `hooks/update-hint-on-commit.sh` | PostToolUse hook — reminds to update docs after git commits |
 
 ## Examples
@@ -274,7 +328,7 @@ Three test scenarios in `tests/`:
 
 ### Obsidian Bases (native, no plugins)
 
-Every vault includes a `Documentation.base` file — an interactive catalog of all generated docs with columns for type, complexity, language, and status. Users can filter, sort, switch between table/card views, and add computed columns directly in Obsidian. No Dataview plugin required.
+Every vault includes a `Documentation.base` file (YAML with Obsidian Bases `and`/`or`/`not` filter syntax) — an interactive catalog of all generated docs grouped by type with columns for complexity, language, and status. Users can filter, sort, switch between table/card views, and add computed columns directly in Obsidian. No Dataview plugin required.
 
 Index.md with Dataview queries is still generated as a fallback for users who prefer it or don't have Bases enabled.
 
