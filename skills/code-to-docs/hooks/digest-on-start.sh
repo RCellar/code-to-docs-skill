@@ -14,13 +14,20 @@ if [[ ! -f "$STATE_FILE" ]]; then
     exit 0
 fi
 
-# Extract key fields from state file
-PROJECT=$(python3 -c "import json,sys; d=json.load(open('$STATE_FILE')); print(d.get('project','unknown'))" 2>/dev/null || echo "unknown")
-MODULES=$(python3 -c "import json,sys; d=json.load(open('$STATE_FILE')); print(', '.join(d.get('modules',[])))" 2>/dev/null || echo "unknown")
-COMMIT=$(python3 -c "import json,sys; d=json.load(open('$STATE_FILE')); print(d.get('git_commit','unknown')[:8])" 2>/dev/null || echo "unknown")
-TIMESTAMP=$(python3 -c "import json,sys; d=json.load(open('$STATE_FILE')); print(d.get('timestamp','unknown'))" 2>/dev/null || echo "unknown")
-MODE=$(python3 -c "import json,sys; d=json.load(open('$STATE_FILE')); print(d.get('mode','unknown'))" 2>/dev/null || echo "unknown")
-ISSUE_COUNT=$(python3 -c "import json,sys; d=json.load(open('$STATE_FILE')); print(len([i for i in d.get('issues',[]) if i.get('status')=='open']))" 2>/dev/null || echo "0")
+# Extract key fields from state file (single python3 invocation)
+IFS=$'\t' read -r PROJECT MODULES COMMIT TIMESTAMP MODE ISSUE_COUNT <<< "$(
+    python3 -c "
+import json
+d = json.load(open('$STATE_FILE'))
+project = d.get('project', 'unknown')
+modules = ', '.join(d.get('modules', []))
+commit = d.get('git_commit', 'unknown')[:8]
+timestamp = d.get('timestamp', 'unknown')
+mode = d.get('mode', 'unknown')
+issue_count = len([i for i in d.get('issues', []) if i.get('status') == 'open'])
+print(f'{project}\t{modules}\t{commit}\t{timestamp}\t{mode}\t{issue_count}')
+" 2>/dev/null || echo "unknown	unknown	unknown	unknown	unknown	0"
+)"
 
 # Check staleness
 CURRENT_HEAD=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")

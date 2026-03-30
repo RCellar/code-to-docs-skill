@@ -22,7 +22,10 @@ for event in list(hooks.keys()):
     original_len = len(hooks[event])
     hooks[event] = [
         h for h in hooks[event]
-        if 'code-to-docs' not in str(h.get('hooks', [{}])[0].get('command', ''))
+        if not any(
+            hook.get('source') == 'code-to-docs'
+            for hook in h.get('hooks', [])
+        )
     ]
     removed += original_len - len(hooks[event])
     # Remove empty event arrays

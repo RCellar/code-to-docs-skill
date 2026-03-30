@@ -30,8 +30,11 @@ chmod +x "$DIGEST_HOOK" "$UPDATE_HOOK"
 # Ensure .claude directory exists
 mkdir -p .claude
 
-# Build the hooks JSON fragment
-HOOKS_JSON=$(cat <<HOOKEOF
+# Build the hooks JSON fragment and write to temp file (avoids string escaping issues)
+HOOKS_TMPFILE=$(mktemp)
+trap 'rm -f "$HOOKS_TMPFILE"' EXIT
+
+cat > "$HOOKS_TMPFILE" <<HOOKEOF
 {
   "hooks": {
     "SessionStart": [
@@ -41,6 +44,7 @@ HOOKS_JSON=$(cat <<HOOKEOF
           {
             "type": "command",
             "command": "CODE_TO_DOCS_VAULT='$VAULT_PATH' bash '$DIGEST_HOOK'",
+            "source": "code-to-docs",
             "timeout": 10
           }
         ]
@@ -54,6 +58,7 @@ HOOKS_JSON=$(cat <<HOOKEOF
             "type": "command",
             "if": "Bash(git commit*)",
             "command": "CODE_TO_DOCS_VAULT='$VAULT_PATH' bash '$UPDATE_HOOK'",
+            "source": "code-to-docs",
             "timeout": 5
           }
         ]
@@ -62,7 +67,6 @@ HOOKS_JSON=$(cat <<HOOKEOF
   }
 }
 HOOKEOF
-)
 
 # Merge with existing settings or create new
 if [[ -f "$PROJECT_SETTINGS" ]]; then
@@ -71,7 +75,7 @@ if [[ -f "$PROJECT_SETTINGS" ]]; then
 import json, sys
 
 existing = json.load(open('$PROJECT_SETTINGS'))
-new_hooks = json.loads('''$HOOKS_JSON''')
+new_hooks = json.load(open('$HOOKS_TMPFILE'))
 
 # Merge hooks — append to existing arrays, don't replace
 if 'hooks' not in existing:
@@ -80,18 +84,20 @@ if 'hooks' not in existing:
 for event, handlers in new_hooks['hooks'].items():
     if event not in existing['hooks']:
         existing['hooks'][event] = []
-    # Check for duplicates by command string
-    existing_cmds = {h.get('hooks', [{}])[0].get('command', '') for h in existing['hooks'][event] if h.get('hooks')}
-    for handler in handlers:
-        cmd = handler.get('hooks', [{}])[0].get('command', '')
-        if cmd and cmd not in existing_cmds:
-            existing['hooks'][event].append(handler)
+    # Check for duplicates by source marker
+    existing_sources = set()
+    for h in existing['hooks'][event]:
+        for hook in h.get('hooks', []):
+            if hook.get('source') == 'code-to-docs':
+                existing_sources.add(event)
+    if event not in existing_sources:
+        existing['hooks'][event].extend(handlers)
 
 json.dump(existing, open('$PROJECT_SETTINGS', 'w'), indent=2)
 print('Merged code-to-docs hooks into existing $PROJECT_SETTINGS')
-" 2>&1
+" HOOKS_TMPFILE="$HOOKS_TMPFILE" 2>&1
 else
-    echo "$HOOKS_JSON" | python3 -c "import json,sys; json.dump(json.load(sys.stdin), open('$PROJECT_SETTINGS','w'), indent=2)"
+    python3 -c "import json,sys; json.dump(json.load(open('$HOOKS_TMPFILE')), open('$PROJECT_SETTINGS','w'), indent=2)" HOOKS_TMPFILE="$HOOKS_TMPFILE"
     echo "Created $PROJECT_SETTINGS with code-to-docs hooks"
 fi
 

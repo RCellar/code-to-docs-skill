@@ -311,4 +311,21 @@ The sessions array provides continuity across the digest → code → update lif
 
 This is the **incremental contract**. The `--update` mode reads this state, runs `git diff` against the stored commit, and re-analyzes only changed modules. The `code-to-docs-digest` skill reads it to provide session-start context. The baseline skill writes this file on every run — do not skip writing it.
 
+### State File Validation
+
+Before reading `analysis.json` in update or digest mode, validate the following required fields exist and have the expected types. If validation fails, report the specific error and fall back to a full generate run (for update) or abort with an error message (for digest).
+
+| Field | Type | Required |
+|-------|------|----------|
+| `modules` | array of strings | yes |
+| `dependency_graph` | object (string → array of strings) | yes |
+| `files_analyzed` | object (string → string) | yes |
+| `git_commit` | string or null | yes |
+| `timestamp` | string (ISO 8601) | yes |
+| `mode` | string (`"quick"` or `"full"`) | yes |
+| `issues` | array of objects | yes (may be empty) |
+| `sessions` | array of objects | yes (may be empty) |
+
+Each issue object must have: `id` (string), `module` (string), `type` (string), `severity` (string), `status` (string). Missing or malformed issues should be logged and skipped rather than causing a full abort.
+
 **Note:** `_state/` is internal to the skill. If the vault is committed to git, add `_state/` to `.gitignore` to avoid leaking file hashes and commit refs from the analyzed codebase.

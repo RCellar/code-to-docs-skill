@@ -301,11 +301,12 @@ These rules apply to all agents and to the orchestrating session.
 
 This section applies only when `--update` is passed. For baseline generation (no `--update`), follow Steps 1-4 above.
 
-### Update Step 1: Load Previous State
+### Update Step 1: Load and Validate Previous State
 
 1. Read `_state/analysis.json` from the existing vault at `--output` path
 2. If the file does not exist, abort update and fall back to a full generate run. Inform the user: "No previous state found — running full generation instead."
-3. Extract: `git_commit` (the commit hash from the last run), `modules` (module list), `dependency_graph`, `files_analyzed`, `issues`
+3. Validate the state file against the schema in `output-structure.md` "State File Validation" section. If required fields are missing or have wrong types, report the validation error and fall back to a full generate run.
+4. Extract: `git_commit` (the commit hash from the last run), `modules` (module list), `dependency_graph`, `files_analyzed`, `issues`
 
 ### Update Step 2: Diff
 
