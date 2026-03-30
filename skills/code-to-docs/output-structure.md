@@ -175,37 +175,32 @@ SORT generated-at DESC
 
 Generate `Documentation.base` in the vault root. This provides a native Obsidian Bases view — interactive, filterable, no plugins required. It complements Index.md (which uses Dataview) rather than replacing it.
 
-The `.base` file is JSON. Structure:
+The `.base` file is YAML (not JSON). Filters use the `and`/`or`/`not` recursive structure — flat filter arrays are not valid. Structure:
 
-```json
-{
-  "headings": [
-    { "heading": "title", "type": "property" },
-    { "heading": "type", "type": "property" },
-    { "heading": "language", "type": "property" },
-    { "heading": "complexity", "type": "property" },
-    { "heading": "status", "type": "property" },
-    { "heading": "canonical-source", "type": "property" }
-  ],
-  "sourceType": "folder",
-  "source": "",
-  "filters": [
-    {
-      "field": "generated-by",
-      "operator": "is",
-      "value": "code-to-docs"
-    }
-  ],
-  "sort": [
-    { "field": "type", "order": "asc" },
-    { "field": "complexity", "order": "desc" }
-  ]
-}
+```yaml
+filters:
+  and:
+    - 'generated-by == "code-to-docs"'
+
+views:
+  - type: table
+    name: "All Documentation"
+    order:
+      - file.name
+      - title
+      - type
+      - language
+      - complexity
+      - status
+      - canonical-source
+    groupBy:
+      property: type
+      direction: ASC
 ```
 
-This creates a table view of all generated docs, filterable by type, complexity, and language. Users can switch between table and card views, add computed columns, or modify filters directly in Obsidian.
+This creates a table view of all generated docs grouped by type. Users can switch between table and card views, add computed columns, or modify filters directly in Obsidian.
 
-**Generation:** Haiku agent — this is a mechanical JSON transform from the module list and metadata.
+**Generation:** Haiku agent — this is a mechanical YAML transform from the module list and metadata.
 
 ---
 
