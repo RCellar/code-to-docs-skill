@@ -1,0 +1,14 @@
+{
+  "name": "code-to-docs-skill",
+  "owner": {
+    "name": "RCellar"
+  },
+  "plugins": [
+    {
+      "name": "code-to-docs",
+      "source": "./",
+      "description": "Generate Obsidian-native documentation vaults from codebases with architecture diagrams, API references, and teaching-focused explanations at three audience levels.",
+      "version": "0.4.0"
+    }
+  ]
+}
