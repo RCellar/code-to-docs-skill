@@ -145,13 +145,13 @@ Add this repo as a marketplace source, then install the plugin:
 Copy the skill files directly:
 
 ```bash
-mkdir -p ~/.claude/skills/{code-to-docs,update,digest,hooks,references}
+mkdir -p ~/.claude/skills/{code-to-docs,code-to-docs-update,code-to-docs-digest,code-to-docs-hooks,code-to-docs-references}
 cp skills/code-to-docs/* ~/.claude/skills/code-to-docs/
-cp skills/update/* ~/.claude/skills/update/
-cp skills/digest/* ~/.claude/skills/digest/
-cp skills/hooks/SKILL.md ~/.claude/skills/hooks/
-cp -r skills/hooks/hooks ~/.claude/skills/hooks/
-cp skills/references/* ~/.claude/skills/references/
+cp skills/code-to-docs-update/* ~/.claude/skills/code-to-docs-update/
+cp skills/code-to-docs-digest/* ~/.claude/skills/code-to-docs-digest/
+cp skills/code-to-docs-hooks/SKILL.md ~/.claude/skills/code-to-docs-hooks/
+cp -r skills/code-to-docs-hooks/hooks ~/.claude/skills/code-to-docs-hooks/
+cp skills/code-to-docs-references/* ~/.claude/skills/code-to-docs-references/
 ```
 
 ## Usage
@@ -311,13 +311,13 @@ If the `obsidian` CLI is available, uses it for note creation and property manag
 | File | Purpose |
 |------|---------|
 | `code-to-docs/SKILL.md` | Generate skill (quick/full mode, model tier rules, red flags) |
-| `update/SKILL.md` | Update skill (incremental update flow, issue tracking) |
-| `digest/SKILL.md` | Digest skill (read-only vault context loading, token budgets) |
-| `hooks/SKILL.md` | Hooks skill (setup/teardown project-level automation) |
-| `references/analysis-guide.md` | Phase 1 reference (dispatch table, agent templates, synthesis) |
-| `references/obsidian-templates.md` | Phase 2 reference (frontmatter, audience levels, health templates) |
-| `references/output-structure.md` | Phase 2 reference (dispatch table, vault layout, state schema) |
-| `hooks/hooks/*.sh` | Hook shell scripts for SessionStart and PostToolUse automation |
+| `code-to-docs-update/SKILL.md` | Update skill (incremental update flow, issue tracking) |
+| `code-to-docs-digest/SKILL.md` | Digest skill (read-only vault context loading, token budgets) |
+| `code-to-docs-hooks/SKILL.md` | Hooks skill (setup/teardown project-level automation) |
+| `code-to-docs-references/analysis-guide.md` | Phase 1 reference (dispatch table, agent templates, synthesis) |
+| `code-to-docs-references/obsidian-templates.md` | Phase 2 reference (frontmatter, audience levels, health templates) |
+| `code-to-docs-references/output-structure.md` | Phase 2 reference (dispatch table, vault layout, state schema) |
+| `code-to-docs-hooks/hooks/*.sh` | Hook shell scripts for SessionStart and PostToolUse automation |
 
 ## Examples
 

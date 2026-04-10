@@ -39,19 +39,19 @@ Same tiers as `code-to-docs` — see that skill for the full table. Key rule: us
 
 ## Execution
 
-Read `../references/analysis-guide.md` section "Incremental Update Flow" for detailed step-by-step instructions. Read `../references/output-structure.md` for state file schema and vault layout. Read `../references/obsidian-templates.md` for formatting rules.
+Read `../code-to-docs-references/analysis-guide.md` section "Incremental Update Flow" for detailed step-by-step instructions. Read `../code-to-docs-references/output-structure.md` for state file schema and vault layout. Read `../code-to-docs-references/obsidian-templates.md` for formatting rules.
 
 ### Step 1: Load and Validate Previous State
 
 1. Read `_state/analysis.json` from the existing vault at `--output` path
 2. If the file does not exist, abort update and fall back to a full generate run. Inform the user: "No previous state found — running full generation instead."
-3. Validate the state file against the schema in `../references/output-structure.md` "State File Validation" section. If required fields are missing or have wrong types, report the validation error and fall back to a full generate run.
+3. Validate the state file against the schema in `../code-to-docs-references/output-structure.md` "State File Validation" section. If required fields are missing or have wrong types, report the validation error and fall back to a full generate run.
 4. Extract: `git_commit` (the commit hash from the last run), `modules` (module list), `dependency_graph`, `files_analyzed`, `issues`
 
 ### Step 2: Diff
 
 1. Run `git diff <stored_git_commit>..HEAD --name-only` in the codebase root
-2. Filter out excluded paths (see `../references/analysis-guide.md` Exclusions section)
+2. Filter out excluded paths (see `../code-to-docs-references/analysis-guide.md` Exclusions section)
 3. The result is the list of **changed files** since the last documentation run
 
 If the diff is empty (no changes since last run), report "No changes since last documentation run" and exit without modifying the vault.
@@ -88,8 +88,8 @@ Report the auto-selected mode to the user: "Update mode: quick (2 of 8 modules a
 
 For each affected module, run the same two-pass analysis as baseline:
 
-1. **Haiku extraction** (sections 1-6) — same agent prompt template as `../references/analysis-guide.md` Pass 1
-2. **Sonnet/Opus issue analysis** (section 7) — same agent prompt template as `../references/analysis-guide.md` Pass 2, same model escalation rules
+1. **Haiku extraction** (sections 1-6) — same agent prompt template as `../code-to-docs-references/analysis-guide.md` Pass 1
+2. **Sonnet/Opus issue analysis** (section 7) — same agent prompt template as `../code-to-docs-references/analysis-guide.md` Pass 2, same model escalation rules
 
 For **unchanged modules**, carry forward their existing reports from the previous run. Do not re-analyze.
 
@@ -134,7 +134,7 @@ Write `_state/analysis.json` with:
 - `modules` → merged module list (may include new modules in full mode)
 - `files_analyzed` → merged map (updated entries for re-analyzed modules, carried forward for unchanged)
 - `issues` → merged array with status updates
-- `sessions` → append new session entry (see `../references/output-structure.md` for schema)
+- `sessions` → append new session entry (see `../code-to-docs-references/output-structure.md` for schema)
 
 ### Step 9: Verify
 

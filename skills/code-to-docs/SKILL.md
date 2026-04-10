@@ -51,7 +51,7 @@ This skill uses three model tiers to balance cost and quality. Select tier based
 
 ### Phase 1: Intake & Analysis
 
-Read `../references/analysis-guide.md` for detailed instructions.
+Read `../code-to-docs-references/analysis-guide.md` for detailed instructions.
 
 1. Survey the codebase — entry points, config files, directory structure
 2. Identify independent modules
@@ -63,9 +63,9 @@ Read `../references/analysis-guide.md` for detailed instructions.
 
 ### Phase 2: Documentation Generation
 
-Read `../references/obsidian-templates.md` for formatting rules. Read `../references/output-structure.md` for vault layout.
+Read `../code-to-docs-references/obsidian-templates.md` for formatting rules. Read `../code-to-docs-references/output-structure.md` for vault layout.
 
-**Before dispatching:** Check if `obsidian` CLI is available (`which obsidian`). If yes, use `obsidian create` with `silent` flag for note creation. If no, use direct file writes. See `../references/output-structure.md` "Obsidian CLI Integration" for details.
+**Before dispatching:** Check if `obsidian` CLI is available (`which obsidian`). If yes, use `obsidian create` with `silent` flag for note creation. If no, use direct file writes. See `../code-to-docs-references/output-structure.md` "Obsidian CLI Integration" for details.
 
 Dispatch in parallel where possible:
 

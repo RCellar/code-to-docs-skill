@@ -31,7 +31,7 @@ Skill(skill: "code-to-docs:hooks", args: "teardown")
 Run the setup script to install both hooks:
 
 ```bash
-bash skills/hooks/hooks/setup.sh [vault-path]
+bash skills/code-to-docs-hooks/hooks/setup.sh [vault-path]
 ```
 
 This installs two hooks into `.claude/settings.json`:
@@ -46,7 +46,7 @@ This installs two hooks into `.claude/settings.json`:
 Run the teardown script to remove code-to-docs hooks:
 
 ```bash
-bash skills/hooks/hooks/teardown.sh
+bash skills/code-to-docs-hooks/hooks/teardown.sh
 ```
 
 Removes hooks by matching the `source` field. Other hooks in settings.json are left untouched.
